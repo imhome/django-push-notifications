@@ -10,6 +10,7 @@ The app implements two models: ``GCMDevice`` and ``APNSDevice``. Those models sh
  - ``is_active`` (default True): A boolean that determines whether the device will be sent notifications.
  - ``user`` (optional): A foreign key to auth.User, if you wish to link the device to a specific user.
  - ``device_id`` (optional): A UUID for the device obtained from Android/iOS APIs, if you wish to uniquely identify it.
+ - ``device_type`` (optional): The type of device being used, either `DEBUG`, `BETA`, or `PROD` use the right certificate
  - ``registration_id`` (required): The GCM registration id or the APNS token for the device.
 
 
@@ -67,6 +68,9 @@ In order to use GCM, you are required to include ``GCM_API_KEY``.
 For APNS, you are required to include ``APNS_CERTIFICATE``.
 
 - ``APNS_CERTIFICATE``: Absolute path to your APNS certificate file. Certificates with passphrases are not supported.
+	- ``APNS_DEBUG_CERTIFICATE`` - Used for specific `device_type`
+	- ``APNS_BETA_CERTIFICATE`` - Used for specific `device_type`
+	- ``APNS_PROD_CERTIFICATE`` - Used for specific `device_type`
 - ``APNS_CA_CERTIFICATES``: Absolute path to a CA certificates file for APNS. Optional - do not set if not needed. Defaults to None.
 - ``GCM_API_KEY``: Your API key for GCM.
 - ``APNS_HOST``: The hostname used for the APNS sockets.

@@ -14,6 +14,7 @@ from contextlib import closing
 from binascii import unhexlify
 from django.core.exceptions import ImproperlyConfigured
 from . import NotificationError
+from .models import APNSDevice
 from .settings import PUSH_NOTIFICATIONS_SETTINGS as SETTINGS
 
 
@@ -32,8 +33,16 @@ class APNSDataOverflow(APNSError):
 	pass
 
 
-def _apns_create_socket(address_tuple):
-	certfile = SETTINGS.get("APNS_CERTIFICATE")
+def _apns_create_socket(address_tuple, device_type):
+	if device_type == APNSDevice.DEBUG:
+		certfile = SETTINGS.get("APNS_DEBUG_CERTIFICATE")
+	elif device_type == APNSDevice.BETA:
+		certfile = SETTINGS.get("APNS_BETA_CERTIFICATE")
+	elif device_type == APNSDevice.PROD:
+		certfile = SETTINGS.get("APNS_PROD_CERTIFICATE")
+	else:
+		certfile = SETTINGS.get("APNS_CERTIFICATE")
+
 	if not certfile:
 		raise ImproperlyConfigured(
 			'You need to set PUSH_NOTIFICATIONS_SETTINGS["APNS_CERTIFICATE"] to send messages through APNS.'
@@ -54,12 +63,12 @@ def _apns_create_socket(address_tuple):
 	return sock
 
 
-def _apns_create_socket_to_push():
-	return _apns_create_socket((SETTINGS["APNS_HOST"], SETTINGS["APNS_PORT"]))
+def _apns_create_socket_to_push(device_type):
+	return _apns_create_socket((SETTINGS["APNS_HOST"], SETTINGS["APNS_PORT"]), device_type)
 
 
-def _apns_create_socket_to_feedback():
-	return _apns_create_socket((SETTINGS["APNS_FEEDBACK_HOST"], SETTINGS["APNS_FEEDBACK_PORT"]))
+def _apns_create_socket_to_feedback(device_type):
+	return _apns_create_socket((SETTINGS["APNS_FEEDBACK_HOST"], SETTINGS["APNS_FEEDBACK_PORT"]), device_type)
 
 
 def _apns_pack_frame(token_hex, payload, identifier, expiration, priority):
@@ -102,7 +111,7 @@ def _apns_check_errors(sock):
 		sock.settimeout(saved_timeout)
 
 
-def _apns_send(token, alert, badge=None, sound=None, category=None, content_available=False,
+def _apns_send(token, device_type, alert, badge=None, sound=None, category=None, content_available=False,
 	action_loc_key=None, loc_key=None, loc_args=[], extra={}, identifier=0,
 	expiration=None, priority=10, socket=None):
 	data = {}
@@ -150,7 +159,7 @@ def _apns_send(token, alert, badge=None, sound=None, category=None, content_avai
 	if socket:
 		socket.write(frame)
 	else:
-		with closing(_apns_create_socket_to_push()) as socket:
+		with closing(_apns_create_socket_to_push(device_type)) as socket:
 			socket.write(frame)
 			_apns_check_errors(socket)
 
@@ -194,7 +203,7 @@ def _apns_receive_feedback(socket):
 	return expired_token_list
 
 
-def apns_send_message(registration_id, alert, **kwargs):
+def apns_send_message(registration_id, device_type, alert, **kwargs):
 	"""
 	Sends an APNS notification to a single registration_id.
 	This will send the notification as form data.
@@ -206,10 +215,10 @@ def apns_send_message(registration_id, alert, **kwargs):
 	to this for silent notifications.
 	"""
 
-	_apns_send(registration_id, alert, **kwargs)
+	_apns_send(registration_id, device_type, alert, **kwargs)
 
 
-def apns_send_bulk_message(registration_ids, alert, **kwargs):
+def apns_send_bulk_message(registration_ids, device_type, alert, **kwargs):
 	"""
 	Sends an APNS notification to one or more registration_ids.
 	The registration_ids argument needs to be a list.
@@ -218,18 +227,18 @@ def apns_send_bulk_message(registration_ids, alert, **kwargs):
 	it won't be included in the notification. You will need to pass None
 	to this for silent notifications.
 	"""
-	with closing(_apns_create_socket_to_push()) as socket:
+	with closing(_apns_create_socket_to_push(device_type)) as socket:
 		for identifier, registration_id in enumerate(registration_ids):
-			_apns_send(registration_id, alert, identifier=identifier, socket=socket, **kwargs)
+			_apns_send(registration_id, device_type, alert, identifier=identifier, socket=socket, **kwargs)
 		_apns_check_errors(socket)
 
 
-def apns_fetch_inactive_ids():
+def apns_fetch_inactive_ids(device_type):
 	"""
 	Queries the APNS server for id's that are no longer active since
 	the last fetch
 	"""
-	with closing(_apns_create_socket_to_feedback()) as socket:
+	with closing(_apns_create_socket_to_feedback(device_type)) as socket:
 		inactive_ids = []
 		# Maybe we should have a flag to return the timestamp?
 		# It doesn't seem that useful right now, though.

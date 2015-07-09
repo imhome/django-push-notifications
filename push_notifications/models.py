@@ -68,14 +68,28 @@ class APNSDeviceQuerySet(models.query.QuerySet):
 	def send_message(self, message, **kwargs):
 		if self:
 			from .apns import apns_send_bulk_message
-			reg_ids = [rec.registration_id for rec in self]
-			return apns_send_bulk_message(registration_ids=reg_ids, alert=message, **kwargs)
+			debug_reg_ids = [rec.registration_id for rec in self if rec.device_type == 'DEBUG']
+			beta_reg_ids = [rec.registration_id for rec in self if rec.device_type == 'BETA']
+			prod_reg_ids = [rec.registration_id for rec in self if rec.device_type == 'PROD']
+			apns_send_bulk_message(registration_ids=debug_reg_ids, device_types='DEBUG', alert=message, **kwargs)
+			apns_send_bulk_message(registration_ids=beta_reg_ids, device_types='BETA', alert=message, **kwargs)
+			apns_send_bulk_message(registration_ids=prod_reg_ids, device_types='PROD', alert=message, **kwargs)
 
 
 class APNSDevice(Device):
 	device_id = models.UUIDField(verbose_name=_("Device ID"), blank=True, null=True, db_index=True,
 		help_text="UDID / UIDevice.identifierForVendor()")
 	registration_id = models.CharField(verbose_name=_("Registration ID"), max_length=64, unique=True)
+
+	DEBUG = 'DEBUG'
+	BETA = 'BETA'
+	PROD = 'PROD'
+	DEVICE_TYPE_CHOICES = (
+	    (DEBUG, 'Debug'),
+	    (BETA, 'Beta'),
+	    (PROD, 'Prod'),
+	)
+	device_type = models.CharField(verbose_name=_("Device Type"), max_length=5, choices=DEVICE_TYPE_CHOICES)
 
 	objects = APNSDeviceManager()
 
@@ -85,11 +99,14 @@ class APNSDevice(Device):
 	def send_message(self, message, **kwargs):
 		from .apns import apns_send_message
 
-		return apns_send_message(registration_id=self.registration_id, alert=message, **kwargs)
+		return apns_send_message(registration_id=self.registration_id, device_type=self.device_type, alert=message, **kwargs)
 
 
 # This is an APNS-only function right now, but maybe GCM will implement it
 # in the future.  But the definition of 'expired' may not be the same. Whatevs
 def get_expired_tokens():
 	from .apns import apns_fetch_inactive_ids
-	return apns_fetch_inactive_ids()
+	inactive_ids = apns_fetch_inactive_ids(APNSDevice.DEBUG)
+	inactive_ids += apns_fetch_inactive_ids(APNSDevice.BETA)
+	inactive_ids += apns_fetch_inactive_ids(APNSDevice.PROD)
+	return inactive_ids
