@@ -13,6 +13,21 @@ class DeviceAdmin(admin.ModelAdmin):
 	list_filter = ("active", )
 	actions = ("send_message", "send_bulk_message", "prune_devices", "enable", "disable")
 
+	BASE_FIELDS = (None, {
+	    'fields': (
+	        'user',
+	        'name',
+	        'device_id',
+	        'registration_id',
+	        'active',
+	    ),
+	    'classes': ('wide', 'extrapretty'),
+	})
+
+	fieldsets = (
+	    BASE_FIELDS,
+	)
+
 	def send_message(self, request, queryset):
 		ret = []
 		errors = []
@@ -57,6 +72,29 @@ class DeviceAdmin(admin.ModelAdmin):
 			d.save()
 
 
+class APNSDeviceAdmin(DeviceAdmin):
+	"""
+	Inherits from DeviceAdmin to display device_type
+	"""
+	list_display = ("__unicode__", "device_id", "user", "device_type", "active", "date_created")
+
+	BASE_FIELDS = (None, {
+	    'fields': (
+	        'user',
+	        'name',
+	        'device_id',
+	        'registration_id',
+	        'device_type',
+	        'active',
+	    ),
+	    'classes': ('wide', 'extrapretty'),
+	})
+
+	fieldsets = (
+	    BASE_FIELDS,
+	)
+
+
 class GCMDeviceAdmin(DeviceAdmin):
 	"""
 	Inherits from DeviceAdmin to handle displaying gcm device as a hex value
@@ -70,5 +108,5 @@ class GCMDeviceAdmin(DeviceAdmin):
 
 	list_display = ("__unicode__", "device_id_hex", "user", "active", "date_created")
 
-admin.site.register(APNSDevice, DeviceAdmin)
+admin.site.register(APNSDevice, APNSDeviceAdmin)
 admin.site.register(GCMDevice, GCMDeviceAdmin)
