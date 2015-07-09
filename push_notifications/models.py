@@ -71,9 +71,9 @@ class APNSDeviceQuerySet(models.query.QuerySet):
 			debug_reg_ids = [rec.registration_id for rec in self if rec.device_type == 'DEBUG']
 			beta_reg_ids = [rec.registration_id for rec in self if rec.device_type == 'BETA']
 			prod_reg_ids = [rec.registration_id for rec in self if rec.device_type == 'PROD']
-			apns_send_bulk_message(registration_ids=debug_reg_ids, device_types='DEBUG', alert=message, **kwargs)
-			apns_send_bulk_message(registration_ids=beta_reg_ids, device_types='BETA', alert=message, **kwargs)
-			apns_send_bulk_message(registration_ids=prod_reg_ids, device_types='PROD', alert=message, **kwargs)
+			apns_send_bulk_message(registration_ids=debug_reg_ids, device_type='DEBUG', alert=message, **kwargs)
+			apns_send_bulk_message(registration_ids=beta_reg_ids, device_type='BETA', alert=message, **kwargs)
+			apns_send_bulk_message(registration_ids=prod_reg_ids, device_type='PROD', alert=message, **kwargs)
 
 
 class APNSDevice(Device):
