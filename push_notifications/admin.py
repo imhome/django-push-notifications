@@ -77,6 +77,7 @@ class APNSDeviceAdmin(DeviceAdmin):
 	Inherits from DeviceAdmin to display device_type
 	"""
 	list_display = ("__unicode__", "device_id", "user", "device_type", "active", "date_created")
+	list_filter = ("active", "device_type")
 
 	BASE_FIELDS = (None, {
 	    'fields': (

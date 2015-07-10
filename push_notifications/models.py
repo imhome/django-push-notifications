@@ -49,7 +49,7 @@ class GCMDevice(Device):
 	objects = GCMDeviceManager()
 
 	class Meta:
-		verbose_name = _("GCM device")
+		verbose_name = _("GCM Device")
 
 	def send_message(self, message, **kwargs):
 		from .gcm import gcm_send_message
@@ -94,7 +94,7 @@ class APNSDevice(Device):
 	objects = APNSDeviceManager()
 
 	class Meta:
-		verbose_name = _("APNS device")
+		verbose_name = _("APNS Device")
 
 	def send_message(self, message, **kwargs):
 		from .apns import apns_send_message
